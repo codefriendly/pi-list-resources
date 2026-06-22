@@ -24,14 +24,22 @@ Shows skills discovered from:
 
 ## Install
 
+For private repos, use the SSH git form:
+
 ```bash
-pi install git:github.com/c11dev/pi-list-packages
+pi install git:git@github.com:c11dev/pi-list-packages
+```
+
+If you prefer, the equivalent SSH URL also works:
+
+```bash
+pi install ssh://git@github.com/c11dev/pi-list-packages
 ```
 
 ## Update
 
 ```bash
-pi update --extension git:github.com/c11dev/pi-list-packages
+pi update --extension git:git@github.com:c11dev/pi-list-packages
 ```
 
 ## Files
@@ -48,3 +56,4 @@ README.md
 ## More
 
 - `docs/usage.md` for command behavior and discovery notes.
+- For private GitHub repos, the `git:github.com/user/repo` shorthand may try HTTPS auth. Use an explicit SSH form instead.
