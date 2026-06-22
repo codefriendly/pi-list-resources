@@ -1,0 +1,13 @@
+{
+  "name": "pi-list-packages",
+  "version": "0.1.0",
+  "description": "Pi extension that adds /extensions and /skills commands.",
+  "keywords": ["pi-package"],
+  "license": "MIT",
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}
