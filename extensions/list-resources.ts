@@ -1,12 +1,4 @@
-/**
- * List Resources
- *
- * Provides /extensions, /skills, and /prompts commands for the TUI.
- *
- * /extensions — lists installed packages and local extension files
- * /skills    — lists available skills from all skill directories
- * /prompts   — lists available prompt templates
- */
+/** Inspect the resources that Pi loaded for the current session. */
 
 import {
 	CONFIG_DIR_NAME,
@@ -17,106 +9,172 @@ import {
 	type ExtensionCommandContext,
 	type ResolvedResource,
 } from "@earendil-works/pi-coding-agent";
-import { join, relative, sep } from "node:path";
+import { homedir } from "node:os";
+import { isAbsolute, join, relative, sep } from "node:path";
 
 type SourceMetadata = Pick<ResolvedResource["metadata"], "origin" | "scope" | "source">;
+type Section = "context" | "skills" | "prompts" | "extensions" | "themes";
+
+const sections: Array<{ value: Section; label: string; description: string }> = [
+	{ value: "context", label: "context", description: "Show loaded context sources" },
+	{ value: "skills", label: "skills", description: "Show loaded skills" },
+	{ value: "prompts", label: "prompts", description: "Show loaded prompt templates" },
+	{ value: "extensions", label: "extensions", description: "Show discovered extensions" },
+	{ value: "themes", label: "themes", description: "Show loaded custom themes" },
+];
 
 function formatSource(source: SourceMetadata): string {
 	return source.origin === "package" ? `📦 ${source.source}` : source.scope;
 }
 
-function formatExtension(extension: ResolvedResource, baseDir: string): string {
-	const { metadata, path } = extension;
-	const relativePath = relative(metadata.baseDir ?? baseDir, path);
-	const normalizedPath = relativePath.split(sep).join("/");
-	const label = normalizedPath.startsWith("extensions/") ? normalizedPath.slice("extensions/".length) : normalizedPath;
-	return `${label} (${formatSource(metadata)})`;
+function formatPath(path: string, cwd: string): string {
+	const projectPath = relative(cwd, path);
+	let display = !projectPath.startsWith(`..${sep}`) && projectPath !== ".." && !isAbsolute(projectPath) ? projectPath : path;
+	const homePath = relative(homedir(), path);
+	if (display === path && !homePath.startsWith(`..${sep}`) && homePath !== ".." && !isAbsolute(homePath)) {
+		display = homePath ? `~/${homePath}` : "~";
+	}
+	return display.split(sep).join("/");
+}
+
+function extensionLabel(extension: ResolvedResource, baseDir: string): string {
+	const relativePath = relative(extension.metadata.baseDir ?? baseDir, extension.path).split(sep).join("/");
+	return relativePath.startsWith("extensions/") ? relativePath.slice("extensions/".length) : relativePath;
+}
+
+async function resolveExtensions(ctx: ExtensionCommandContext): Promise<Array<{ label: string; detail: string }> | null> {
+	const agentDir = getAgentDir();
+	const settingsManager = SettingsManager.create(ctx.cwd, agentDir, { projectTrusted: ctx.isProjectTrusted() });
+	const settingsErrors = settingsManager.drainErrors();
+	if (settingsErrors.length > 0) {
+		ctx.ui.notify(
+			settingsErrors
+				.map(({ scope, error }) => `Could not read ${scope === "global" ? "user" : "project"} settings: ${error.message}`)
+				.join("\n"),
+			"error",
+		);
+		return null;
+	}
+
+	const packageManager = new DefaultPackageManager({ cwd: ctx.cwd, agentDir, settingsManager });
+	return (await packageManager.resolve(async () => "skip"))
+		.extensions.filter(({ enabled }) => enabled)
+		.map((extension) => {
+			const baseDir =
+				extension.metadata.scope === "user"
+					? agentDir
+					: extension.metadata.scope === "project"
+						? join(ctx.cwd, CONFIG_DIR_NAME)
+						: ctx.cwd;
+			const label = extensionLabel(extension, baseDir);
+			return { label, detail: `${label} (${formatSource(extension.metadata)})` };
+		})
+		.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function contextLabels(ctx: ExtensionCommandContext): string[] {
+	const options = ctx.getSystemPromptOptions();
+	const labels: string[] = [];
+	if (options.customPrompt) labels.push("(custom system prompt)");
+	if (options.appendSystemPrompt) labels.push("(appended system prompt)");
+	for (const file of options.contextFiles ?? []) labels.push(formatPath(file.path, ctx.cwd));
+	return labels;
 }
 
 export default function (pi: ExtensionAPI) {
-	// ── /extensions command ──
-	pi.registerCommand("extensions", {
-		description: "List discovered extension resources",
-		handler: async (_args: string, ctx: ExtensionCommandContext) => {
-			const agentDir = getAgentDir();
-			const settingsManager = SettingsManager.create(ctx.cwd, agentDir, {
-				projectTrusted: ctx.isProjectTrusted(),
-			});
-			const settingsErrors = settingsManager.drainErrors();
-			if (settingsErrors.length > 0) {
-				const message = settingsErrors
-					.map(({ scope, error }) => `Could not read ${scope === "global" ? "user" : "project"} settings: ${error.message}`)
-					.join("\n");
-				ctx.ui.notify(message, "error");
+	pi.registerCommand("resources", {
+		description: "Inspect loaded Pi resources",
+		getArgumentCompletions: (prefix) => sections.filter(({ value }) => value.startsWith(prefix.trim().toLowerCase())),
+		handler: async (args: string, ctx: ExtensionCommandContext) => {
+			const section = args.trim().toLowerCase();
+			const skills = () => [...(ctx.getSystemPromptOptions().skills ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+			const prompts = () =>
+				pi
+					.getCommands()
+					.filter((command) => command.source === "prompt")
+					.sort((a, b) => a.name.localeCompare(b.name));
+			const themes = () =>
+				[...ctx.ui.getAllThemes()]
+					.flatMap((theme) => {
+						const sourceInfo = ctx.ui.getTheme(theme.name)?.sourceInfo;
+						return sourceInfo ? [{ ...theme, sourceInfo }] : [];
+					})
+					.sort((a, b) => a.name.localeCompare(b.name));
+
+			if (section === "context") {
+				const labels = contextLabels(ctx);
+				ctx.ui.notify(labels.length ? ["📄 Context:", ...labels.map((label) => `  • ${label}`)].join("\n") : "No context resources found.", "info");
 				return;
 			}
-			const packageManager = new DefaultPackageManager({
-				cwd: ctx.cwd,
-				agentDir,
-				settingsManager,
-			});
-			const extensions = (await packageManager.resolve(async () => "skip"))
-				.extensions.filter((extension) => extension.enabled)
-				.map((extension) => {
-					const baseDir =
-						extension.metadata.scope === "user"
-							? agentDir
-							: extension.metadata.scope === "project"
-								? join(ctx.cwd, CONFIG_DIR_NAME)
-								: ctx.cwd;
-					return formatExtension(extension, baseDir);
-				})
-				.sort((a, b) => a.localeCompare(b));
-
-			if (extensions.length === 0) {
-				ctx.ui.notify("No extension resources discovered.", "info");
+			if (section === "skills") {
+				const resources = skills();
+				ctx.ui.notify(
+					resources.length
+						? ["📘 Skills:", ...resources.map((skill) => `  • ${skill.name} (${formatSource(skill.sourceInfo)})`)].join("\n")
+						: "No skills found.",
+					"info",
+				);
+				return;
+			}
+			if (section === "prompts") {
+				const resources = prompts();
+				ctx.ui.notify(
+					resources.length
+						? ["📝 Prompt templates:", ...resources.map((prompt) => `  • /${prompt.name} (${formatSource(prompt.sourceInfo)})`)].join("\n")
+						: "No prompt templates found.",
+					"info",
+				);
+				return;
+			}
+			if (section === "extensions") {
+				const resources = await resolveExtensions(ctx);
+				if (!resources) return;
+				ctx.ui.notify(
+					resources.length ? ["🔌 Discovered extensions:", ...resources.map(({ detail }) => `  • ${detail}`)].join("\n") : "No extension resources discovered.",
+					"info",
+				);
+				return;
+			}
+			if (section === "themes") {
+				const resources = themes();
+				ctx.ui.notify(
+					resources.length
+						? [
+								"🎨 Themes:",
+								...resources.map(
+									({ name, path, sourceInfo }) => `  • ${name}${path ? ` — ${formatPath(path, ctx.cwd)}` : ""} (${formatSource(sourceInfo)})`,
+								),
+							].join("\n")
+						: "No custom themes found.",
+					"info",
+				);
+				return;
+			}
+			if (section) {
+				ctx.ui.notify(
+					`Unknown resource section "${section}".\nUsage: /resources [context|skills|prompts|extensions|themes]`,
+					"error",
+				);
 				return;
 			}
 
-			ctx.ui.notify(["🔌 Discovered extensions:", ...extensions.map((extension) => `  • ${extension}`)].join("\n"), "info");
-		},
-	});
-
-	// ── /skills command ──
-	pi.registerCommand("skills", {
-		description: "List available skills",
-		handler: async (_args: string, ctx: ExtensionCommandContext) => {
-			const skills = ctx.getSystemPromptOptions().skills ?? [];
-
-			if (skills.length === 0) {
-				ctx.ui.notify("No skills found.", "info");
-				return;
+			const extensions = await resolveExtensions(ctx);
+			if (!extensions) return;
+			const groups: Array<[string, string[]]> = [
+				["Context", contextLabels(ctx)],
+				["Skills", skills().map(({ name }) => name)],
+				["Prompts", prompts().map(({ name }) => `/${name}`)],
+				["Extensions", extensions.map(({ label }) => label)],
+				["Themes", themes().map(({ name }) => name)],
+			];
+			const lines: string[] = [];
+			for (const [heading, labels] of groups) {
+				if (!labels.length) continue;
+				if (lines.length) lines.push("");
+				lines.push(`[${heading}]`, `  ${labels.join(", ")}`);
 			}
-
-			const lines = ["📘 Skills:"];
-			const sorted = [...skills].sort((a, b) => a.name.localeCompare(b.name));
-			for (const skill of sorted) {
-				lines.push(`  • ${skill.name} (${formatSource(skill.sourceInfo)})`);
-			}
-
-			ctx.ui.notify(lines.join("\n"), "info");
-		},
-	});
-
-	// ── /prompts command ──
-	pi.registerCommand("prompts", {
-		description: "List available prompt templates",
-		handler: async (_args: string, ctx: ExtensionCommandContext) => {
-			const prompts = pi
-				.getCommands()
-				.filter((command) => command.source === "prompt")
-				.sort((a, b) => a.name.localeCompare(b.name));
-
-			if (prompts.length === 0) {
-				ctx.ui.notify("No prompt templates found.", "info");
-				return;
-			}
-
-			const lines = ["📝 Prompt templates:"];
-			for (const prompt of prompts) {
-				lines.push(`  • /${prompt.name} (${formatSource(prompt.sourceInfo)})`);
-			}
-
+			if (lines.length) lines.push("");
+			lines.push("Run /resources <section> for details.", "Sections: context, skills, prompts, extensions, themes");
 			ctx.ui.notify(lines.join("\n"), "info");
 		},
 	});
