@@ -19,13 +19,18 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { join, relative, sep } from "node:path";
 
+type SourceMetadata = Pick<ResolvedResource["metadata"], "origin" | "scope" | "source">;
+
+function formatSource(source: SourceMetadata): string {
+	return source.origin === "package" ? `📦 ${source.source}` : source.scope;
+}
+
 function formatExtension(extension: ResolvedResource, baseDir: string): string {
 	const { metadata, path } = extension;
 	const relativePath = relative(metadata.baseDir ?? baseDir, path);
 	const normalizedPath = relativePath.split(sep).join("/");
 	const label = normalizedPath.startsWith("extensions/") ? normalizedPath.slice("extensions/".length) : normalizedPath;
-	const source = metadata.origin === "package" ? `📦 ${metadata.source}` : metadata.scope;
-	return `${label} (${source})`;
+	return `${label} (${formatSource(metadata)})`;
 }
 
 export default function (pi: ExtensionAPI) {
@@ -86,9 +91,7 @@ export default function (pi: ExtensionAPI) {
 			const lines = ["📘 Skills:"];
 			const sorted = [...skills].sort((a, b) => a.name.localeCompare(b.name));
 			for (const skill of sorted) {
-				const source = skill.sourceInfo?.origin === "package" ? skill.sourceInfo.source : undefined;
-				const suffix = source ? ` (📦 ${source})` : "";
-				lines.push(`  • ${skill.name}${suffix}`);
+				lines.push(`  • ${skill.name} (${formatSource(skill.sourceInfo)})`);
 			}
 
 			ctx.ui.notify(lines.join("\n"), "info");
@@ -111,11 +114,7 @@ export default function (pi: ExtensionAPI) {
 
 			const lines = ["📝 Prompt templates:"];
 			for (const prompt of prompts) {
-				const source =
-					prompt.sourceInfo.origin === "package"
-						? `📦 ${prompt.sourceInfo.source}`
-						: prompt.sourceInfo.scope;
-				lines.push(`  • /${prompt.name} (${source})`);
+				lines.push(`  • /${prompt.name} (${formatSource(prompt.sourceInfo)})`);
 			}
 
 			ctx.ui.notify(lines.join("\n"), "info");

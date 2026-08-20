@@ -33,11 +33,15 @@ test("/skills lists only Pi's resolved loaded skills", async () => {
 				skills: [
 					{
 						name: "zeta-local",
-						sourceInfo: { origin: "top-level", source: "skills" },
+						sourceInfo: { origin: "top-level", scope: "user", source: "skills" },
 					},
 					{
 						name: "alpha-package",
-						sourceInfo: { origin: "package", source: "npm:@scope/toolkit" },
+						sourceInfo: { origin: "package", scope: "user", source: "npm:@scope/toolkit" },
+					},
+					{
+						name: "project-local",
+						sourceInfo: { origin: "top-level", scope: "project", source: "skills" },
 					},
 				],
 			};
@@ -47,7 +51,7 @@ test("/skills lists only Pi's resolved loaded skills", async () => {
 	assert.equal(notifications.length, 1);
 	assert.equal(
 		notifications[0],
-		"📘 Skills:\n  • alpha-package (📦 npm:@scope/toolkit)\n  • zeta-local",
+		"📘 Skills:\n  • alpha-package (📦 npm:@scope/toolkit)\n  • project-local (project)\n  • zeta-local (user)",
 	);
 });
 
