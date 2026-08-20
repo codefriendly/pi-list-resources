@@ -92,6 +92,9 @@ test("/extensions uses Pi's resolved user and project config directories", async
 	assert.ok(handler);
 	await handler("", {
 		cwd: projectDir,
+		isProjectTrusted() {
+			return true;
+		},
 		ui: {
 			notify(message: string) {
 				notifications.push(message);
@@ -104,6 +107,60 @@ test("/extensions uses Pi's resolved user and project config directories", async
 		notifications[0],
 		"📦 Packages:\n  • custom-package\n📄 Global extensions:\n  • global.ts\n📄 Project extensions:\n  • project.ts",
 	);
+});
+
+test("/extensions supports filtered packages from user and project settings", async (t) => {
+	const root = mkdtempSync(join(tmpdir(), "pi-list-resources-"));
+	const agentDir = join(root, "agent");
+	const projectDir = join(root, "project");
+	const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
+
+	t.after(() => {
+		if (originalAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = originalAgentDir;
+		rmSync(root, { recursive: true, force: true });
+	});
+
+	mkdirSync(agentDir, { recursive: true });
+	mkdirSync(join(projectDir, ".pi"), { recursive: true });
+	writeFileSync(
+		join(agentDir, "settings.json"),
+		JSON.stringify({ packages: [{ source: "npm:user-filtered", skills: [] }] }),
+	);
+	writeFileSync(
+		join(projectDir, ".pi", "settings.json"),
+		JSON.stringify({ packages: [{ source: "npm:project-filtered", extensions: ["extensions/*.ts"] }] }),
+	);
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+
+	const commands = new Map<string, (args: string, ctx: unknown) => Promise<void>>();
+	const notifications: string[] = [];
+	const pi = {
+		registerCommand(name: string, options: { handler: (args: string, ctx: unknown) => Promise<void> }) {
+			commands.set(name, options.handler);
+		},
+		sendMessage() {
+			throw new Error("read-only commands must not send model-context messages");
+		},
+	};
+
+	listResources(pi as never);
+
+	const handler = commands.get("extensions");
+	assert.ok(handler);
+	await handler("", {
+		cwd: projectDir,
+		isProjectTrusted() {
+			return true;
+		},
+		ui: {
+			notify(message: string) {
+				notifications.push(message);
+			},
+		},
+	});
+
+	assert.deepEqual(notifications, ["📦 Packages:\n  • user-filtered\n  • project-filtered"]);
 });
 
 test("/prompts lists only Pi's resolved prompt templates", async () => {

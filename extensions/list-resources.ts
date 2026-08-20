@@ -10,27 +10,14 @@
 
 import {
 	CONFIG_DIR_NAME,
+	DefaultPackageManager,
 	getAgentDir,
+	SettingsManager,
 	type ExtensionAPI,
 	type ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-
-interface Settings {
-	packages?: string[];
-	extensions?: string[];
-	[key: string]: unknown;
-}
-
-function loadSettings(path: string): Settings {
-	if (!existsSync(path)) return {};
-	try {
-		return JSON.parse(readFileSync(path, "utf-8")) as Settings;
-	} catch {
-		return {};
-	}
-}
 
 function scanExtensionDir(dir: string): string[] {
 	if (!existsSync(dir)) return [];
@@ -60,8 +47,15 @@ export default function (pi: ExtensionAPI) {
 		description: "List installed packages and local extensions",
 		handler: async (_args: string, ctx: ExtensionCommandContext) => {
 			const agentDir = getAgentDir();
-			const settings = loadSettings(join(agentDir, "settings.json"));
-			const installedPackages = settings.packages ?? [];
+			const settingsManager = SettingsManager.create(ctx.cwd, agentDir, {
+				projectTrusted: ctx.isProjectTrusted(),
+			});
+			const packageManager = new DefaultPackageManager({
+				cwd: ctx.cwd,
+				agentDir,
+				settingsManager,
+			});
+			const installedPackages = packageManager.listConfiguredPackages();
 			const globalExts = scanExtensionDir(join(agentDir, "extensions"));
 			const projectExts = scanExtensionDir(join(ctx.cwd, CONFIG_DIR_NAME, "extensions"));
 
@@ -70,11 +64,11 @@ export default function (pi: ExtensionAPI) {
 			if (installedPackages.length > 0) {
 				lines.push("📦 Packages:");
 				for (const pkg of installedPackages) {
-					const label = pkg.startsWith("npm:")
-						? pkg.slice(4)
-						: pkg.startsWith("git:")
-							? pkg.slice(4)
-							: pkg;
+					const label = pkg.source.startsWith("npm:")
+						? pkg.source.slice(4)
+						: pkg.source.startsWith("git:")
+							? pkg.source.slice(4)
+							: pkg.source;
 					lines.push(`  • ${label}`);
 				}
 			}
