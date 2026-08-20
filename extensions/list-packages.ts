@@ -7,12 +7,14 @@
  * /skills    — lists available skills from all skill directories
  */
 
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import {
+	CONFIG_DIR_NAME,
+	getAgentDir,
+	type ExtensionAPI,
+	type ExtensionCommandContext,
+} from "@earendil-works/pi-coding-agent";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
-
-const SETTINGS_PATH = join(homedir(), ".pi", "agent", "settings.json");
 
 interface Settings {
 	packages?: string[];
@@ -20,10 +22,10 @@ interface Settings {
 	[key: string]: unknown;
 }
 
-function loadSettings(): Settings {
-	if (!existsSync(SETTINGS_PATH)) return {};
+function loadSettings(path: string): Settings {
+	if (!existsSync(path)) return {};
 	try {
-		return JSON.parse(readFileSync(SETTINGS_PATH, "utf-8")) as Settings;
+		return JSON.parse(readFileSync(path, "utf-8")) as Settings;
 	} catch {
 		return {};
 	}
@@ -56,10 +58,11 @@ export default function (pi: ExtensionAPI) {
 	pi.registerCommand("extensions", {
 		description: "List installed packages and local extensions",
 		handler: async (_args: string, ctx: ExtensionCommandContext) => {
-			const settings = loadSettings();
+			const agentDir = getAgentDir();
+			const settings = loadSettings(join(agentDir, "settings.json"));
 			const installedPackages = settings.packages ?? [];
-			const globalExts = scanExtensionDir(join(homedir(), ".pi", "agent", "extensions"));
-			const projectExts = scanExtensionDir(join(process.cwd(), ".pi", "extensions"));
+			const globalExts = scanExtensionDir(join(agentDir, "extensions"));
+			const projectExts = scanExtensionDir(join(ctx.cwd, CONFIG_DIR_NAME, "extensions"));
 
 			const lines: string[] = [];
 
