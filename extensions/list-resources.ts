@@ -1,5 +1,5 @@
 /**
- * List Extensions & Skills
+ * List Resources
  *
  * Provides /extensions and /skills commands for the TUI.
  *

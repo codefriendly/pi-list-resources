@@ -1,4 +1,4 @@
-# pi-list-packages
+# pi-list-resources
 
 Pi extension that adds quick inspection commands for installed packages, extensions, and skills.
 
@@ -27,30 +27,30 @@ Shows the skills Pi loaded for the current session, including skills from:
 Install from npm:
 
 ```bash
-pi install npm:pi-list-packages
+pi install npm:pi-list-resources
 ```
 
 Or install directly from GitHub:
 
 ```bash
-pi install git:github.com/codefriendly/pi-list-packages
+pi install git:github.com/codefriendly/pi-list-resources
 ```
 
 ## Update
 
 ```bash
-pi update --extension npm:pi-list-packages
+pi update --extension npm:pi-list-resources
 ```
 
 ## Files
 
 ```text
 extensions/
-  list-packages.ts
+  list-resources.ts
 docs/
   usage.md
 tests/
-  list-packages.test.mts
+  list-resources.test.mts
 LICENSE
 package.json
 README.md

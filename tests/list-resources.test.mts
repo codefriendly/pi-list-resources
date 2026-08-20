@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import listPackages from "../extensions/list-packages.ts";
+import listResources from "../extensions/list-resources.ts";
 
 test("/skills lists only Pi's resolved loaded skills", async () => {
 	const commands = new Map<string, (args: string, ctx: unknown) => Promise<void>>();
@@ -18,7 +18,7 @@ test("/skills lists only Pi's resolved loaded skills", async () => {
 		},
 	};
 
-	listPackages(pi as never);
+	listResources(pi as never);
 
 	const handler = commands.get("skills");
 	assert.ok(handler);
@@ -52,7 +52,7 @@ test("/skills lists only Pi's resolved loaded skills", async () => {
 });
 
 test("/extensions uses Pi's resolved user and project config directories", async (t) => {
-	const root = mkdtempSync(join(tmpdir(), "pi-list-packages-"));
+	const root = mkdtempSync(join(tmpdir(), "pi-list-resources-"));
 	const agentDir = join(root, "custom-agent");
 	const projectDir = join(root, "project");
 	const otherDir = join(root, "other");
@@ -86,7 +86,7 @@ test("/extensions uses Pi's resolved user and project config directories", async
 		},
 	};
 
-	listPackages(pi as never);
+	listResources(pi as never);
 
 	const handler = commands.get("extensions");
 	assert.ok(handler);

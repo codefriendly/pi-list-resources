@@ -1,16 +1,16 @@
 {
-  "name": "pi-list-packages",
+  "name": "pi-list-resources",
   "version": "0.1.0",
-  "description": "Pi extension that adds /extensions and /skills commands.",
+  "description": "Pi extension that adds inspection commands for packages, extensions, and skills.",
   "type": "module",
   "keywords": ["pi-package"],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/codefriendly/pi-list-packages.git"
+    "url": "git+https://github.com/codefriendly/pi-list-resources.git"
   },
   "bugs": {
-    "url": "https://github.com/codefriendly/pi-list-packages/issues"
+    "url": "https://github.com/codefriendly/pi-list-resources/issues"
   },
   "files": [
     "extensions",
