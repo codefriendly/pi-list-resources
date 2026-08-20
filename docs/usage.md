@@ -32,7 +32,9 @@ Typing `/resources ` offers argument completion for the five section names.
 
 `/resources context` reads `getSystemPromptOptions().contextFiles`, Pi's authoritative list of loaded context files, and displays their project-relative, home-relative, or absolute paths.
 
-Custom system-prompt and appended system-prompt text also comes from `getSystemPromptOptions()`. Pi does not expose source paths for that text, so the command displays generic `(custom system prompt)` and `(appended system prompt)` labels when present.
+Custom system-prompt and appended system-prompt text also comes from `getSystemPromptOptions()`. The command treats that text as the session's base prompt component/options, not definitively the current effective prompt.
+
+Attribution to Pi's conventional `SYSTEM.md` and `APPEND_SYSTEM.md` locations is best-effort. The command prefers files in a trusted project's `.pi` directory over files in the user agent directory and displays a conventional path only when the file is readable and its current UTF-8 contents exactly equal the corresponding prompt text. That equality identifies a plausible conventional source, but it cannot prove provenance: Pi's public extension API omits recorded source paths, CLI or runtime content can be identical to file content, and a file can change after Pi loads it. When no plausible conventional source matches, the command uses the generic `(custom system prompt)` or `(appended system prompt)` label.
 
 ### Skills
 

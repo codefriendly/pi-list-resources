@@ -208,6 +208,104 @@ test("/resources context lists exposed files and generic prompt sources", async 
 	]);
 });
 
+test("/resources context identifies matching conventional user prompt files", async (t) => {
+	const root = mkdtempSync(join(tmpdir(), "pi-list-resources-"));
+	const agentDir = join(root, "agent");
+	const projectDir = join(root, "project");
+	const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
+
+	t.after(() => {
+		if (originalAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = originalAgentDir;
+		rmSync(root, { recursive: true, force: true });
+	});
+
+	mkdirSync(agentDir, { recursive: true });
+	mkdirSync(projectDir, { recursive: true });
+	writeFileSync(join(agentDir, "SYSTEM.md"), "custom user prompt\n");
+	writeFileSync(join(agentDir, "APPEND_SYSTEM.md"), "appended user prompt\n");
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+
+	const { command, notifications, notify } = createHarness();
+	assert.ok(command);
+	await command.handler(
+		"context",
+		createContext(projectDir, notify, {
+			getSystemPromptOptions() {
+				return { customPrompt: "custom user prompt\n", appendSystemPrompt: "appended user prompt\n" };
+			},
+		}) as never,
+	);
+
+	assert.equal(notifications[0]?.message, `📄 Context:\n  • ${join(agentDir, "SYSTEM.md")}\n  • ${join(agentDir, "APPEND_SYSTEM.md")}`);
+});
+
+test("/resources context gives matching trusted project prompt files precedence", async (t) => {
+	const root = mkdtempSync(join(tmpdir(), "pi-list-resources-"));
+	const agentDir = join(root, "agent");
+	const projectDir = join(root, "project");
+	const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
+
+	t.after(() => {
+		if (originalAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = originalAgentDir;
+		rmSync(root, { recursive: true, force: true });
+	});
+
+	mkdirSync(agentDir, { recursive: true });
+	mkdirSync(join(projectDir, ".pi"), { recursive: true });
+	writeFileSync(join(agentDir, "SYSTEM.md"), "user custom\n");
+	writeFileSync(join(agentDir, "APPEND_SYSTEM.md"), "user appended\n");
+	writeFileSync(join(projectDir, ".pi", "SYSTEM.md"), "project custom\n");
+	writeFileSync(join(projectDir, ".pi", "APPEND_SYSTEM.md"), "project appended\n");
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+
+	const { command, notifications, notify } = createHarness();
+	assert.ok(command);
+	await command.handler(
+		"context",
+		createContext(projectDir, notify, {
+			getSystemPromptOptions() {
+				return { customPrompt: "project custom\n", appendSystemPrompt: "project appended\n" };
+			},
+		}) as never,
+	);
+
+	assert.equal(notifications[0]?.message, "📄 Context:\n  • .pi/SYSTEM.md\n  • .pi/APPEND_SYSTEM.md");
+});
+
+test("/resources context keeps generic labels when conventional prompt contents do not match", async (t) => {
+	const root = mkdtempSync(join(tmpdir(), "pi-list-resources-"));
+	const agentDir = join(root, "agent");
+	const projectDir = join(root, "project");
+	const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
+
+	t.after(() => {
+		if (originalAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = originalAgentDir;
+		rmSync(root, { recursive: true, force: true });
+	});
+
+	mkdirSync(agentDir, { recursive: true });
+	mkdirSync(projectDir, { recursive: true });
+	writeFileSync(join(agentDir, "SYSTEM.md"), "file custom\n");
+	writeFileSync(join(agentDir, "APPEND_SYSTEM.md"), "file appended\n");
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+
+	const { command, notifications, notify } = createHarness();
+	assert.ok(command);
+	await command.handler(
+		"context",
+		createContext(projectDir, notify, {
+			getSystemPromptOptions() {
+				return { customPrompt: "runtime custom", appendSystemPrompt: "runtime appended" };
+			},
+		}) as never,
+	);
+
+	assert.equal(notifications[0]?.message, "📄 Context:\n  • (custom system prompt)\n  • (appended system prompt)");
+});
+
 test("/resources skills and prompts list Pi's resolved resources", async () => {
 	const { command, notifications, notify } = createHarness([
 		{

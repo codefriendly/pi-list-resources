@@ -9,6 +9,7 @@ import {
 	type ExtensionCommandContext,
 	type ResolvedResource,
 } from "@earendil-works/pi-coding-agent";
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, sep } from "node:path";
 
@@ -72,11 +73,32 @@ async function resolveExtensions(ctx: ExtensionCommandContext): Promise<Array<{ 
 		.sort((a, b) => a.label.localeCompare(b.label));
 }
 
-function contextLabels(ctx: ExtensionCommandContext): string[] {
+async function conventionalPromptLabel(ctx: ExtensionCommandContext, filename: string, prompt: string, genericLabel: string): Promise<string> {
+	const userPath = join(getAgentDir(), filename);
+	if (ctx.isProjectTrusted()) {
+		const projectPath = join(ctx.cwd, CONFIG_DIR_NAME, filename);
+		try {
+			const content = await readFile(projectPath, "utf8");
+			return content === prompt ? formatPath(projectPath, ctx.cwd) : genericLabel;
+		} catch (error) {
+			if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) return genericLabel;
+		}
+	}
+	try {
+		const content = await readFile(userPath, "utf8");
+		return content === prompt ? formatPath(userPath, ctx.cwd) : genericLabel;
+	} catch {
+		return genericLabel;
+	}
+}
+
+async function contextLabels(ctx: ExtensionCommandContext): Promise<string[]> {
 	const options = ctx.getSystemPromptOptions();
 	const labels: string[] = [];
-	if (options.customPrompt) labels.push("(custom system prompt)");
-	if (options.appendSystemPrompt) labels.push("(appended system prompt)");
+	if (options.customPrompt) labels.push(await conventionalPromptLabel(ctx, "SYSTEM.md", options.customPrompt, "(custom system prompt)"));
+	if (options.appendSystemPrompt) {
+		labels.push(await conventionalPromptLabel(ctx, "APPEND_SYSTEM.md", options.appendSystemPrompt, "(appended system prompt)"));
+	}
 	for (const file of options.contextFiles ?? []) labels.push(formatPath(file.path, ctx.cwd));
 	return labels;
 }
@@ -102,7 +124,7 @@ export default function (pi: ExtensionAPI) {
 					.sort((a, b) => a.name.localeCompare(b.name));
 
 			if (section === "context") {
-				const labels = contextLabels(ctx);
+				const labels = await contextLabels(ctx);
 				ctx.ui.notify(labels.length ? ["📄 Context:", ...labels.map((label) => `  • ${label}`)].join("\n") : "No context resources found.", "info");
 				return;
 			}
@@ -161,7 +183,7 @@ export default function (pi: ExtensionAPI) {
 			const extensions = await resolveExtensions(ctx);
 			if (!extensions) return;
 			const groups: Array<[string, string[]]> = [
-				["Context", contextLabels(ctx)],
+				["Context", await contextLabels(ctx)],
 				["Skills", skills().map(({ name }) => name)],
 				["Prompts", prompts().map(({ name }) => `/${name}`)],
 				["Extensions", extensions.map(({ label }) => label)],

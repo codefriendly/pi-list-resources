@@ -25,7 +25,7 @@ Typing `/resources ` offers completion for all five section names.
 
 ## What each section reports
 
-- **Context** uses `getSystemPromptOptions().contextFiles` for authoritative loaded context paths. Pi does not expose paths for custom or appended system-prompt text, so those entries can appear as generic labels.
+- **Context** uses `getSystemPromptOptions().contextFiles` for authoritative loaded context paths and treats its prompt text as the session's base prompt component/options, not definitively the current effective prompt. Attribution to conventional user or trusted-project `SYSTEM.md` and `APPEND_SYSTEM.md` files is best-effort: exact current content equality identifies a plausible source but cannot prove provenance because Pi's public extension API omits recorded source paths, CLI/runtime content can be identical, and files can change after load. Generic labels remain when no plausible conventional source is found.
 - **Skills** uses Pi's resolved `getSystemPromptOptions().skills` state, after Pi applies its loading and resolution rules.
 - **Prompts** uses Pi's resolved prompt-command state and displays templates as invokable slash commands.
 - **Extensions** shows enabled resources discovered by Pi's public resolver. This is not a guarantee that every resource loaded successfully, and temporary `-e` extensions are unavailable through the resolver.
