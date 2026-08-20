@@ -37,6 +37,14 @@ export default function (pi: ExtensionAPI) {
 			const settingsManager = SettingsManager.create(ctx.cwd, agentDir, {
 				projectTrusted: ctx.isProjectTrusted(),
 			});
+			const settingsErrors = settingsManager.drainErrors();
+			if (settingsErrors.length > 0) {
+				const message = settingsErrors
+					.map(({ scope, error }) => `Could not read ${scope === "global" ? "user" : "project"} settings: ${error.message}`)
+					.join("\n");
+				ctx.ui.notify(message, "error");
+				return;
+			}
 			const packageManager = new DefaultPackageManager({
 				cwd: ctx.cwd,
 				agentDir,

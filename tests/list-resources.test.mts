@@ -230,6 +230,55 @@ test("/extensions lists Pi-resolved extension resources", async (t) => {
 	assert.deepEqual(notifications, ["🔌 Discovered extensions:\n  • auto.ts (project)\n  • custom/explicit.ts (user)"]);
 });
 
+test("/extensions reports malformed settings instead of an empty result", async (t) => {
+	const root = mkdtempSync(join(tmpdir(), "pi-list-resources-"));
+	const agentDir = join(root, "agent");
+	const projectDir = join(root, "project");
+	const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
+
+	t.after(() => {
+		if (originalAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = originalAgentDir;
+		rmSync(root, { recursive: true, force: true });
+	});
+
+	mkdirSync(agentDir, { recursive: true });
+	mkdirSync(projectDir, { recursive: true });
+	writeFileSync(join(agentDir, "settings.json"), "{ invalid json\n");
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+
+	const commands = new Map<string, (args: string, ctx: unknown) => Promise<void>>();
+	const notifications: Array<{ message: string; level: string }> = [];
+	const pi = {
+		registerCommand(name: string, options: { handler: (args: string, ctx: unknown) => Promise<void> }) {
+			commands.set(name, options.handler);
+		},
+		sendMessage() {
+			throw new Error("read-only commands must not send model-context messages");
+		},
+	};
+
+	listResources(pi as never);
+
+	const handler = commands.get("extensions");
+	assert.ok(handler);
+	await handler("", {
+		cwd: projectDir,
+		isProjectTrusted() {
+			return true;
+		},
+		ui: {
+			notify(message: string, level: string) {
+				notifications.push({ message, level });
+			},
+		},
+	});
+
+	assert.equal(notifications.length, 1);
+	assert.equal(notifications[0]?.level, "error");
+	assert.match(notifications[0]?.message ?? "", /^Could not read user settings: /);
+});
+
 test("/prompts lists only Pi's resolved prompt templates", async () => {
 	const commands = new Map<string, (args: string, ctx: unknown) => Promise<void>>();
 	const notifications: string[] = [];
