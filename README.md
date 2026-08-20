@@ -27,19 +27,19 @@ Shows skills discovered from:
 For private repos, use the SSH git form:
 
 ```bash
-pi install git:git@github.com:c11dev/pi-list-packages
+pi install git:git@github.com:codefriendly/pi-list-packages
 ```
 
 If you prefer, the equivalent SSH URL also works:
 
 ```bash
-pi install ssh://git@github.com/c11dev/pi-list-packages
+pi install ssh://git@github.com:codefriendly/pi-list-packages
 ```
 
 ## Update
 
 ```bash
-pi update --extension git:git@github.com:c11dev/pi-list-packages
+pi update --extension git:git@github.com:codefriendly/pi-list-packages
 ```
 
 ## Files
