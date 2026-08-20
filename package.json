@@ -1,7 +1,7 @@
 {
   "name": "pi-list-resources",
   "version": "0.1.0",
-  "description": "Pi extension that adds inspection commands for extensions, skills, and prompt templates.",
+  "description": "Pi extension that adds a resource inspection command for context, extensions, skills, prompt templates, and themes.",
   "type": "module",
   "packageManager": "npm@10.9.9",
   "keywords": ["pi-package"],
