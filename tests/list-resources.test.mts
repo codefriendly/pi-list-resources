@@ -105,7 +105,7 @@ test("/extensions uses Pi's resolved user and project config directories", async
 	assert.equal(notifications.length, 1);
 	assert.equal(
 		notifications[0],
-		"📦 Packages:\n  • custom-package\n📄 Global extensions:\n  • global.ts\n📄 Project extensions:\n  • project.ts",
+		"🔌 Discovered extensions:\n  • global.ts (user)\n  • project.ts (project)",
 	);
 });
 
@@ -121,15 +121,28 @@ test("/extensions supports filtered packages from user and project settings", as
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	mkdirSync(agentDir, { recursive: true });
-	mkdirSync(join(projectDir, ".pi"), { recursive: true });
+	mkdirSync(join(agentDir, "user-package", "extensions"), { recursive: true });
+	mkdirSync(join(projectDir, ".pi", "project-package", "extensions"), { recursive: true });
+	writeFileSync(
+		join(agentDir, "user-package", "package.json"),
+		JSON.stringify({ pi: { extensions: ["extensions/index.ts"] } }),
+	);
+	writeFileSync(join(agentDir, "user-package", "extensions", "index.ts"), "export default function () {}\n");
+	writeFileSync(
+		join(projectDir, ".pi", "project-package", "package.json"),
+		JSON.stringify({ pi: { extensions: ["extensions/index.ts"] } }),
+	);
+	writeFileSync(
+		join(projectDir, ".pi", "project-package", "extensions", "index.ts"),
+		"export default function () {}\n",
+	);
 	writeFileSync(
 		join(agentDir, "settings.json"),
-		JSON.stringify({ packages: [{ source: "npm:user-filtered", skills: [] }] }),
+		JSON.stringify({ packages: [{ source: "./user-package", extensions: ["extensions/index.ts"] }] }),
 	);
 	writeFileSync(
 		join(projectDir, ".pi", "settings.json"),
-		JSON.stringify({ packages: [{ source: "npm:project-filtered", extensions: ["extensions/*.ts"] }] }),
+		JSON.stringify({ packages: [{ source: "./project-package", extensions: ["extensions/index.ts"] }] }),
 	);
 	process.env.PI_CODING_AGENT_DIR = agentDir;
 
@@ -160,7 +173,61 @@ test("/extensions supports filtered packages from user and project settings", as
 		},
 	});
 
-	assert.deepEqual(notifications, ["📦 Packages:\n  • user-filtered\n  • project-filtered"]);
+	assert.deepEqual(notifications, [
+		"🔌 Discovered extensions:\n  • index.ts (📦 ./project-package)\n  • index.ts (📦 ./user-package)",
+	]);
+});
+
+test("/extensions lists Pi-resolved extension resources", async (t) => {
+	const root = mkdtempSync(join(tmpdir(), "pi-list-resources-"));
+	const agentDir = join(root, "agent");
+	const projectDir = join(root, "project");
+	const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
+
+	t.after(() => {
+		if (originalAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = originalAgentDir;
+		rmSync(root, { recursive: true, force: true });
+	});
+
+	mkdirSync(join(agentDir, "custom"), { recursive: true });
+	mkdirSync(join(projectDir, ".pi", "extensions"), { recursive: true });
+	writeFileSync(join(agentDir, "custom", "explicit.ts"), "export default function () {}\n");
+	writeFileSync(
+		join(agentDir, "settings.json"),
+		JSON.stringify({ extensions: ["custom/explicit.ts"] }),
+	);
+	writeFileSync(join(projectDir, ".pi", "extensions", "auto.ts"), "export default function () {}\n");
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+
+	const commands = new Map<string, (args: string, ctx: unknown) => Promise<void>>();
+	const notifications: string[] = [];
+	const pi = {
+		registerCommand(name: string, options: { handler: (args: string, ctx: unknown) => Promise<void> }) {
+			commands.set(name, options.handler);
+		},
+		sendMessage() {
+			throw new Error("read-only commands must not send model-context messages");
+		},
+	};
+
+	listResources(pi as never);
+
+	const handler = commands.get("extensions");
+	assert.ok(handler);
+	await handler("", {
+		cwd: projectDir,
+		isProjectTrusted() {
+			return true;
+		},
+		ui: {
+			notify(message: string) {
+				notifications.push(message);
+			},
+		},
+	});
+
+	assert.deepEqual(notifications, ["🔌 Discovered extensions:\n  • auto.ts (project)\n  • custom/explicit.ts (user)"]);
 });
 
 test("/prompts lists only Pi's resolved prompt templates", async () => {

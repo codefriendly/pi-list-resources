@@ -1,6 +1,6 @@
 # pi-list-resources
 
-Pi extension that adds quick inspection commands for installed packages, extensions, skills, and prompt templates.
+Pi extension that adds quick inspection commands for extensions, skills, and prompt templates.
 
 ## What it adds
 
@@ -8,9 +8,10 @@ Pi extension that adds quick inspection commands for installed packages, extensi
 
 Shows:
 
-- installed Pi packages from settings
-- global extensions in `~/.pi/agent/extensions`
-- project extensions in `.pi/extensions`
+- enabled extension resources Pi discovers from user and project directories, settings, and installed packages
+- each extension's package source or user/project scope
+
+Pi does not currently expose its successfully loaded extension list to extensions. `/extensions` therefore shows what Pi's public resolver discovers, not a guarantee that every listed extension loaded successfully. Temporary `-e` extensions are not available through this API.
 
 ### `/skills`
 

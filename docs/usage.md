@@ -6,9 +6,8 @@
 
 Displays:
 
-- installed Pi packages from settings
-- global extensions from `~/.pi/agent/extensions`
-- project extensions from `.pi/extensions`
+- enabled extension resources Pi discovers from user and project directories, settings, and installed packages
+- each extension's package source or user/project scope
 
 ### `/skills`
 
@@ -22,11 +21,13 @@ Displays the prompt templates Pi loaded for the current session as invokable sla
 
 ### Extension discovery
 
-`/extensions` looks at:
+`/extensions` uses Pi's public package resolver, which includes:
 
-- Pi package entries from settings
-- `~/.pi/agent/extensions`
-- `.pi/extensions`
+- auto-discovered user and project extension directories
+- explicit extension paths from settings
+- installed package extensions after Pi applies resource filters
+
+Pi does not currently expose its successfully loaded extension list to extensions. The command therefore reports discovered, enabled extension resources rather than guaranteeing that each one loaded successfully. Temporary `-e` extensions are not available through the public resolver.
 
 ### Skill discovery
 
