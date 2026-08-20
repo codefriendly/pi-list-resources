@@ -2,8 +2,20 @@
   "name": "pi-list-packages",
   "version": "0.1.0",
   "description": "Pi extension that adds /extensions and /skills commands.",
+  "type": "module",
   "keywords": ["pi-package"],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codefriendly/pi-list-packages.git"
+  },
+  "bugs": {
+    "url": "https://github.com/codefriendly/pi-list-packages/issues"
+  },
+  "files": [
+    "extensions",
+    "docs"
+  ],
   "pi": {
     "extensions": ["./extensions"]
   },
