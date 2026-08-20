@@ -1,10 +1,11 @@
 /**
  * List Resources
  *
- * Provides /extensions and /skills commands for the TUI.
+ * Provides /extensions, /skills, and /prompts commands for the TUI.
  *
  * /extensions — lists installed packages and local extension files
  * /skills    — lists available skills from all skill directories
+ * /prompts   — lists available prompt templates
  */
 
 import {
@@ -118,6 +119,33 @@ export default function (pi: ExtensionAPI) {
 				const source = skill.sourceInfo?.origin === "package" ? skill.sourceInfo.source : undefined;
 				const suffix = source ? ` (📦 ${source})` : "";
 				lines.push(`  • ${skill.name}${suffix}`);
+			}
+
+			ctx.ui.notify(lines.join("\n"), "info");
+		},
+	});
+
+	// ── /prompts command ──
+	pi.registerCommand("prompts", {
+		description: "List available prompt templates",
+		handler: async (_args: string, ctx: ExtensionCommandContext) => {
+			const prompts = pi
+				.getCommands()
+				.filter((command) => command.source === "prompt")
+				.sort((a, b) => a.name.localeCompare(b.name));
+
+			if (prompts.length === 0) {
+				ctx.ui.notify("No prompt templates found.", "info");
+				return;
+			}
+
+			const lines = ["📝 Prompt templates:"];
+			for (const prompt of prompts) {
+				const source =
+					prompt.sourceInfo.origin === "package"
+						? `📦 ${prompt.sourceInfo.source}`
+						: prompt.sourceInfo.scope;
+				lines.push(`  • /${prompt.name} (${source})`);
 			}
 
 			ctx.ui.notify(lines.join("\n"), "info");

@@ -1,6 +1,6 @@
 # pi-list-resources
 
-Pi extension that adds quick inspection commands for installed packages, extensions, and skills.
+Pi extension that adds quick inspection commands for installed packages, extensions, skills, and prompt templates.
 
 ## What it adds
 
@@ -21,6 +21,10 @@ Shows the skills Pi loaded for the current session, including skills from:
 - project `.pi/skills` and `.agents/skills` directories
 - settings and `--skill` paths
 - installed Pi packages
+
+### `/prompts`
+
+Shows the prompt templates Pi loaded for the current session as their invokable slash commands, including templates from user and project directories, settings, CLI paths, and installed Pi packages.
 
 ## Install
 

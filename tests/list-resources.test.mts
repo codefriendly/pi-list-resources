@@ -105,3 +105,90 @@ test("/extensions uses Pi's resolved user and project config directories", async
 		"📦 Packages:\n  • custom-package\n📄 Global extensions:\n  • global.ts\n📄 Project extensions:\n  • project.ts",
 	);
 });
+
+test("/prompts lists only Pi's resolved prompt templates", async () => {
+	const commands = new Map<string, (args: string, ctx: unknown) => Promise<void>>();
+	const notifications: string[] = [];
+	const pi = {
+		registerCommand(name: string, options: { handler: (args: string, ctx: unknown) => Promise<void> }) {
+			commands.set(name, options.handler);
+		},
+		getCommands() {
+			return [
+				{
+					name: "ignored-extension",
+					source: "extension",
+					sourceInfo: { origin: "top-level", source: "extension" },
+				},
+				{
+					name: "zeta",
+					source: "prompt",
+					sourceInfo: { origin: "top-level", scope: "user", source: "prompts" },
+				},
+				{
+					name: "alpha",
+					source: "prompt",
+					sourceInfo: { origin: "package", source: "npm:@scope/toolkit" },
+				},
+				{
+					name: "ignored-skill",
+					source: "skill",
+					sourceInfo: { origin: "top-level", source: "skills" },
+				},
+			];
+		},
+		sendMessage() {
+			throw new Error("read-only commands must not send model-context messages");
+		},
+	};
+
+	listResources(pi as never);
+
+	const handler = commands.get("prompts");
+	assert.ok(handler);
+	await handler("", {
+		ui: {
+			notify(message: string) {
+				notifications.push(message);
+			},
+		},
+	});
+
+	assert.deepEqual(notifications, ["📝 Prompt templates:\n  • /alpha (📦 npm:@scope/toolkit)\n  • /zeta (user)"]);
+});
+
+test("/prompts reports when no prompt templates are loaded", async () => {
+	const commands = new Map<string, (args: string, ctx: unknown) => Promise<void>>();
+	const notifications: string[] = [];
+	const pi = {
+		registerCommand(name: string, options: { handler: (args: string, ctx: unknown) => Promise<void> }) {
+			commands.set(name, options.handler);
+		},
+		getCommands() {
+			return [
+				{
+					name: "ignored-skill",
+					source: "skill",
+					sourceInfo: { origin: "top-level", source: "skills" },
+				},
+			];
+		},
+		sendMessage() {
+			throw new Error("read-only commands must not send model-context messages");
+		},
+	};
+
+	listResources(pi as never);
+
+	const handler = commands.get("prompts");
+	assert.ok(handler);
+	await handler("", {
+		ui: {
+			notify(message: string) {
+				notifications.push(message);
+			},
+		},
+	});
+
+	assert.deepEqual(notifications, ["No prompt templates found."]);
+});

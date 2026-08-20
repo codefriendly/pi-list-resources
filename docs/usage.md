@@ -14,6 +14,10 @@ Displays:
 
 Displays the skills Pi loaded for the current session.
 
+### `/prompts`
+
+Displays the prompt templates Pi loaded for the current session as invokable slash commands.
+
 ## Discovery notes
 
 ### Extension discovery
@@ -35,6 +39,10 @@ Displays the skills Pi loaded for the current session.
 - installed Pi packages
 
 Pi applies its normal trust, validation, filtering, and collision rules before the command displays the list.
+
+### Prompt template discovery
+
+`/prompts` uses Pi's resolved slash-command list, so it includes prompt templates from user and project directories, settings, command-line paths, and installed Pi packages.
 
 ## Notes
 

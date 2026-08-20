@@ -1,7 +1,7 @@
 {
   "name": "pi-list-resources",
   "version": "0.1.0",
-  "description": "Pi extension that adds inspection commands for packages, extensions, and skills.",
+  "description": "Pi extension that adds inspection commands for packages, extensions, skills, and prompt templates.",
   "type": "module",
   "keywords": ["pi-package"],
   "license": "MIT",
