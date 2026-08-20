@@ -14,32 +14,32 @@ Shows:
 
 ### `/skills`
 
-Shows skills discovered from:
+Shows the skills Pi loaded for the current session, including skills from:
 
 - `~/.pi/agent/skills`
 - `~/.agents/skills`
-- `.pi/skills`
-- `.agents/skills`
-- installed Pi packages that declare skills
+- project `.pi/skills` and `.agents/skills` directories
+- settings and `--skill` paths
+- installed Pi packages
 
 ## Install
 
-For private repos, use the SSH git form:
+Install from npm:
 
 ```bash
-pi install git:git@github.com:codefriendly/pi-list-packages
+pi install npm:pi-list-packages
 ```
 
-If you prefer, the equivalent SSH URL also works:
+Or install directly from GitHub:
 
 ```bash
-pi install ssh://git@github.com:codefriendly/pi-list-packages
+pi install git:github.com/codefriendly/pi-list-packages
 ```
 
 ## Update
 
 ```bash
-pi update --extension git:git@github.com:codefriendly/pi-list-packages
+pi update --extension npm:pi-list-packages
 ```
 
 ## Files
@@ -49,6 +49,9 @@ extensions/
   list-packages.ts
 docs/
   usage.md
+tests/
+  list-packages.test.mts
+LICENSE
 package.json
 README.md
 ```
@@ -56,4 +59,3 @@ README.md
 ## More
 
 - `docs/usage.md` for command behavior and discovery notes.
-- For private GitHub repos, the `git:github.com/user/repo` shorthand may try HTTPS auth. Use an explicit SSH form instead.

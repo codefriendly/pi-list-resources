@@ -12,7 +12,7 @@ Displays:
 
 ### `/skills`
 
-Displays skills from common local skill directories and from installed Pi packages that declare skills.
+Displays the skills Pi loaded for the current session.
 
 ## Discovery notes
 
@@ -26,13 +26,15 @@ Displays skills from common local skill directories and from installed Pi packag
 
 ### Skill discovery
 
-`/skills` looks at:
+`/skills` uses Pi's resolved skill list, which includes skills loaded from:
 
 - `~/.pi/agent/skills`
 - `~/.agents/skills`
-- `.pi/skills`
-- `.agents/skills`
-- installed npm packages that declare Pi skills in `package.json`
+- project `.pi/skills` and `.agents/skills` directories
+- configured and command-line skill paths
+- installed Pi packages
+
+Pi applies its normal trust, validation, filtering, and collision rules before the command displays the list.
 
 ## Notes
 
