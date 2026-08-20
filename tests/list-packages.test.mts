@@ -8,13 +8,13 @@ import listPackages from "../extensions/list-packages.ts";
 
 test("/skills lists only Pi's resolved loaded skills", async () => {
 	const commands = new Map<string, (args: string, ctx: unknown) => Promise<void>>();
-	const messages: Array<{ content: string }> = [];
+	const notifications: string[] = [];
 	const pi = {
 		registerCommand(name: string, options: { handler: (args: string, ctx: unknown) => Promise<void> }) {
 			commands.set(name, options.handler);
 		},
-		sendMessage(message: { content: string }) {
-			messages.push(message);
+		sendMessage() {
+			throw new Error("read-only commands must not send model-context messages");
 		},
 	};
 
@@ -23,6 +23,11 @@ test("/skills lists only Pi's resolved loaded skills", async () => {
 	const handler = commands.get("skills");
 	assert.ok(handler);
 	await handler("", {
+		ui: {
+			notify(message: string) {
+				notifications.push(message);
+			},
+		},
 		getSystemPromptOptions() {
 			return {
 				skills: [
@@ -39,10 +44,10 @@ test("/skills lists only Pi's resolved loaded skills", async () => {
 		},
 	});
 
-	assert.equal(messages.length, 1);
+	assert.equal(notifications.length, 1);
 	assert.equal(
-		messages[0].content,
-		"**📘 Skills:**\n  • alpha-package (📦 npm:@scope/toolkit)\n  • zeta-local",
+		notifications[0],
+		"📘 Skills:\n  • alpha-package (📦 npm:@scope/toolkit)\n  • zeta-local",
 	);
 });
 
@@ -71,13 +76,13 @@ test("/extensions uses Pi's resolved user and project config directories", async
 	process.chdir(otherDir);
 
 	const commands = new Map<string, (args: string, ctx: unknown) => Promise<void>>();
-	const messages: Array<{ content: string }> = [];
+	const notifications: string[] = [];
 	const pi = {
 		registerCommand(name: string, options: { handler: (args: string, ctx: unknown) => Promise<void> }) {
 			commands.set(name, options.handler);
 		},
-		sendMessage(message: { content: string }) {
-			messages.push(message);
+		sendMessage() {
+			throw new Error("read-only commands must not send model-context messages");
 		},
 	};
 
@@ -85,11 +90,18 @@ test("/extensions uses Pi's resolved user and project config directories", async
 
 	const handler = commands.get("extensions");
 	assert.ok(handler);
-	await handler("", { cwd: projectDir });
+	await handler("", {
+		cwd: projectDir,
+		ui: {
+			notify(message: string) {
+				notifications.push(message);
+			},
+		},
+	});
 
-	assert.equal(messages.length, 1);
+	assert.equal(notifications.length, 1);
 	assert.equal(
-		messages[0].content,
-		"**📦 Packages:**\n  • custom-package\n**📄 Global extensions:**\n  • global.ts\n**📄 Project extensions:**\n  • project.ts",
+		notifications[0],
+		"📦 Packages:\n  • custom-package\n📄 Global extensions:\n  • global.ts\n📄 Project extensions:\n  • project.ts",
 	);
 });

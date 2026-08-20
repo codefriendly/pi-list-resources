@@ -67,7 +67,7 @@ export default function (pi: ExtensionAPI) {
 			const lines: string[] = [];
 
 			if (installedPackages.length > 0) {
-				lines.push("**📦 Packages:**");
+				lines.push("📦 Packages:");
 				for (const pkg of installedPackages) {
 					const label = pkg.startsWith("npm:")
 						? pkg.slice(4)
@@ -79,33 +79,25 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			if (globalExts.length > 0) {
-				lines.push("**📄 Global extensions:**");
+				lines.push("📄 Global extensions:");
 				for (const ext of globalExts) {
 					lines.push(`  • ${ext}`);
 				}
 			}
 
 			if (projectExts.length > 0) {
-				lines.push("**📄 Project extensions:**");
+				lines.push("📄 Project extensions:");
 				for (const ext of projectExts) {
 					lines.push(`  • ${ext}`);
 				}
 			}
 
 			if (lines.length === 0) {
-				pi.sendMessage({
-					customType: "extensions-list",
-					content: "No packages or extensions found.",
-					display: true,
-				});
+				ctx.ui.notify("No packages or extensions found.", "info");
 				return;
 			}
 
-			pi.sendMessage({
-				customType: "extensions-list",
-				content: lines.join("\n"),
-				display: true,
-			});
+			ctx.ui.notify(lines.join("\n"), "info");
 		},
 	});
 
@@ -116,15 +108,11 @@ export default function (pi: ExtensionAPI) {
 			const skills = ctx.getSystemPromptOptions().skills ?? [];
 
 			if (skills.length === 0) {
-				pi.sendMessage({
-					customType: "skills-list",
-					content: "No skills found.",
-					display: true,
-				});
+				ctx.ui.notify("No skills found.", "info");
 				return;
 			}
 
-			const lines = ["**📘 Skills:**"];
+			const lines = ["📘 Skills:"];
 			const sorted = [...skills].sort((a, b) => a.name.localeCompare(b.name));
 			for (const skill of sorted) {
 				const source = skill.sourceInfo?.origin === "package" ? skill.sourceInfo.source : undefined;
@@ -132,11 +120,7 @@ export default function (pi: ExtensionAPI) {
 				lines.push(`  • ${skill.name}${suffix}`);
 			}
 
-			pi.sendMessage({
-				customType: "skills-list",
-				content: lines.join("\n"),
-				display: true,
-			});
+			ctx.ui.notify(lines.join("\n"), "info");
 		},
 	});
 }
