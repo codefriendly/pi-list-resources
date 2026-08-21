@@ -1,59 +1,51 @@
-# pi-list-packages
+# pi-list-resources
 
-Pi extension that adds quick inspection commands for installed packages, extensions, and skills.
+[![npm version](https://img.shields.io/npm/v/pi-list-resources.svg)](https://www.npmjs.com/package/pi-list-resources)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## What it adds
+Inspect Pi resources—context, extensions, skills, prompt templates, and themes—from one command.
 
-### `/extensions`
-
-Shows:
-
-- installed Pi packages from settings
-- global extensions in `~/.pi/agent/extensions`
-- project extensions in `.pi/extensions`
-
-### `/skills`
-
-Shows skills discovered from:
-
-- `~/.pi/agent/skills`
-- `~/.agents/skills`
-- `.pi/skills`
-- `.agents/skills`
-- installed Pi packages that declare skills
+![pi-list-resources showing the resource overview and skill source details](docs/cover.png)
 
 ## Install
 
-For private repos, use the SSH git form:
+Install from npm:
 
 ```bash
-pi install git:git@github.com:codefriendly/pi-list-packages
+pi install npm:pi-list-resources
 ```
 
-If you prefer, the equivalent SSH URL also works:
+Or install directly from GitHub:
 
 ```bash
-pi install ssh://git@github.com:codefriendly/pi-list-packages
+pi install https://github.com/codefriendly/pi-list-resources
 ```
+
+## Usage
+
+Run `/resources` with no argument for a compact, startup-style summary of non-empty resource sections.
+
+The summary ends with a hint to run `/resources <section>` for more detail. For example:
+
+```text
+/resources context
+/resources themes
+```
+
+Typing `/resources ` offers completion for all five section names.
+
+| Section | Shows |
+| --- | --- |
+| Context | Loaded context files and identifiable prompt sources |
+| Skills | Skills loaded for the current session |
+| Prompts | Available prompt templates as invokable slash commands |
+| Extensions | Enabled extension resources discovered by Pi |
+| Themes | Loaded custom themes, excluding Pi's built-ins |
+
+See the [usage guide](docs/usage.md) for details and current limitations.
 
 ## Update
 
 ```bash
-pi update --extension git:git@github.com:codefriendly/pi-list-packages
+pi update --extension npm:pi-list-resources
 ```
-
-## Files
-
-```text
-extensions/
-  list-packages.ts
-docs/
-  usage.md
-package.json
-README.md
-```
-
-## More
-
-- `docs/usage.md` for command behavior and discovery notes.
-- For private GitHub repos, the `git:github.com/user/repo` shorthand may try HTTPS auth. Use an explicit SSH form instead.
