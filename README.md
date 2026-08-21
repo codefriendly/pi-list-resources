@@ -5,7 +5,7 @@
 
 Inspect Pi resources—context, extensions, skills, prompt templates, and themes—from one command.
 
-![pi-list-resources showing the resource overview and skill source details](docs/cover.png)
+![pi-list-resources showing the resource overview and skill source details](https://raw.githubusercontent.com/codefriendly/pi-list-resources/main/docs/cover.png)
 
 ## Install
 

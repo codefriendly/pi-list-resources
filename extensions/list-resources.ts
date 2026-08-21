@@ -79,7 +79,7 @@ async function conventionalPromptLabel(ctx: ExtensionCommandContext, filename: s
 		const projectPath = join(ctx.cwd, CONFIG_DIR_NAME, filename);
 		try {
 			const content = await readFile(projectPath, "utf8");
-			return content === prompt ? formatPath(projectPath, ctx.cwd) : genericLabel;
+			if (content === prompt) return formatPath(projectPath, ctx.cwd);
 		} catch (error) {
 			if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) return genericLabel;
 		}
@@ -106,7 +106,10 @@ async function contextLabels(ctx: ExtensionCommandContext): Promise<string[]> {
 export default function (pi: ExtensionAPI) {
 	pi.registerCommand("resources", {
 		description: "Inspect loaded Pi resources",
-		getArgumentCompletions: (prefix) => sections.filter(({ value }) => value.startsWith(prefix.trim().toLowerCase())),
+		getArgumentCompletions: (prefix) => {
+			const matches = sections.filter(({ value }) => value.startsWith(prefix.trim().toLowerCase()));
+			return matches.length > 0 ? matches : null;
+		},
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
 			const section = args.trim().toLowerCase();
 			const skills = () => [...(ctx.getSystemPromptOptions().skills ?? [])].sort((a, b) => a.name.localeCompare(b.name));

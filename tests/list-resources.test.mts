@@ -83,6 +83,7 @@ test("registers one /resources command with section completions", () => {
 	assert.deepEqual(command.getArgumentCompletions?.("  EX  "), [
 		{ value: "extensions", label: "extensions", description: "Show discovered extensions" },
 	]);
+	assert.equal(command.getArgumentCompletions?.("missing"), null);
 });
 
 test("/resources trims and lowercases section arguments", async () => {
@@ -272,6 +273,38 @@ test("/resources context gives matching trusted project prompt files precedence"
 	);
 
 	assert.equal(notifications[0]?.message, "📄 Context:\n  • .pi/SYSTEM.md\n  • .pi/APPEND_SYSTEM.md");
+});
+
+test("/resources context falls back to a matching user prompt when the trusted project file differs", async (t) => {
+	const root = mkdtempSync(join(tmpdir(), "pi-list-resources-"));
+	const agentDir = join(root, "agent");
+	const projectDir = join(root, "project");
+	const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
+
+	t.after(() => {
+		if (originalAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = originalAgentDir;
+		rmSync(root, { recursive: true, force: true });
+	});
+
+	mkdirSync(agentDir, { recursive: true });
+	mkdirSync(join(projectDir, ".pi"), { recursive: true });
+	writeFileSync(join(agentDir, "SYSTEM.md"), "loaded user prompt\n");
+	writeFileSync(join(projectDir, ".pi", "SYSTEM.md"), "different project prompt\n");
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+
+	const { command, notifications, notify } = createHarness();
+	assert.ok(command);
+	await command.handler(
+		"context",
+		createContext(projectDir, notify, {
+			getSystemPromptOptions() {
+				return { customPrompt: "loaded user prompt\n" };
+			},
+		}) as never,
+	);
+
+	assert.equal(notifications[0]?.message, `📄 Context:\n  • ${join(agentDir, "SYSTEM.md")}`);
 });
 
 test("/resources context keeps generic labels when conventional prompt contents do not match", async (t) => {
